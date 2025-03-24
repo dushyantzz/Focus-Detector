@@ -9,9 +9,9 @@ class GazeMonitor:
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
         self.last_focus_time = time.time()
-        self.distraction_start = None  # Initialize as None
-        self.focus_threshold = 2  # Seconds of distraction to trigger alert
-        self.attention_span = 0  # Total focused time
+        self.distraction_start = None
+        self.focus_threshold = 2  
+        self.attention_span = 0 
 
     def get_gaze_direction(self, eye_points, landmarks):
         try:
@@ -61,54 +61,48 @@ class GazeMonitor:
             if not ret:
                 break
 
-            self.frame = cv2.flip(self.frame, 1)  # Mirror the frame for natural interaction
+            self.frame = cv2.flip(self.frame, 1)
             gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             faces = self.detector(gray)
 
             is_focused = False
 
-            # Process each detected face
             for face in faces:
                 try:
                     landmarks = self.predictor(gray, face)
 
-                    # Calculate gaze directions for both eyes
                     left_eye = self.get_gaze_direction([36, 37, 38, 39, 40, 41], landmarks)
                     right_eye = self.get_gaze_direction([42, 43, 44, 45, 46, 47], landmarks)
 
                     gaze_x = (left_eye[0] + right_eye[0]) / 2
                     gaze_y = (left_eye[1] + right_eye[1]) / 2
 
-                    # Determine focus state
-                    if abs(gaze_x) < 5 and abs(gaze_y) < 5:  # Focused on screen
+                    if abs(gaze_x) < 5 and abs(gaze_y) < 5:  
                         is_focused = True
                         self.distraction_start = None
                         self.attention_span += time.time() - self.last_focus_time
                         self.last_focus_time = time.time()
-                    else:  # Not focused
+                    else: 
                         if self.distraction_start is None:
                             self.distraction_start = time.time()
 
                 except Exception as e:
                     print(f"Error processing face: {str(e)}")
 
-            # Handle no-face scenario (not focused)
             if not is_focused and self.distraction_start is None:
                 self.distraction_start = time.time()
 
-            # Visual feedback system
             if is_focused:
-                status_color = (0, 255, 0)  # Green for focused
+                status_color = (0, 255, 0)  
                 status_text = f"Focused: {int(self.attention_span)}s"
                 progress = (time.time() - self.last_focus_time) / self.focus_threshold
             else:
-                status_color = (0, 0, 255)  # Red for distracted
-                if self.distraction_start is not None:  # Ensure distraction_start is valid
+                status_color = (0, 0, 255)
+                if self.distraction_start is not None:  
                     distraction_time = time.time() - self.distraction_start
                     status_text = f"Distracted: {int(distraction_time)}s"
                     progress = distraction_time / self.focus_threshold
 
-                    # Show alert if distraction exceeds threshold
                     if distraction_time > self.focus_threshold:
                         cv2.putText(self.frame, "ALERT! FOCUS ON SCREEN!",
                                     (50, 100), cv2.FONT_HERSHEY_SIMPLEX,
@@ -117,7 +111,6 @@ class GazeMonitor:
                     status_text = "Distracted: 0s"
                     progress = 0
 
-            # Draw status overlay at the top of the frame
             cv2.rectangle(self.frame, (0, 0), (400, 70), (30, 30, 30), -1)
             cv2.putText(self.frame, status_text,
                         (10, 40), cv2.FONT_HERSHEY_SIMPLEX,
@@ -125,7 +118,6 @@ class GazeMonitor:
                         color=status_color,
                         thickness=2)
 
-            # Draw progress bar at the bottom of the frame
             bar_width = int(self.frame.shape[1] * min(progress, 1))
             cv2.rectangle(self.frame,
                           (0, self.frame.shape[0] - 20),
@@ -133,10 +125,8 @@ class GazeMonitor:
                           status_color,
                           thickness=-1)
 
-            # Display the frame with overlays
             cv2.imshow("Focus Assistant", self.frame)
 
-            # Exit on pressing 'q'
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
