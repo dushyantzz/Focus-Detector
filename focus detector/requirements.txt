@@ -1,0 +1,5 @@
+opencv-python==4.8.1.78
+numpy==1.26.2
+dlib==19.24.2
+requests==2.31.0
+tqdm==4.66.1
